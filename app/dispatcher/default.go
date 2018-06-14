@@ -84,8 +84,9 @@ func (*DefaultDispatcher) Start() error {
 func (*DefaultDispatcher) Close() error { return nil }
 
 func (d *DefaultDispatcher) getLink(ctx context.Context) (*core.Link, *core.Link) {
-	uplinkReader, uplinkWriter := pipe.New()
-	downlinkReader, downlinkWriter := pipe.New()
+	opt := pipe.OptionsFromContext(ctx)
+	uplinkReader, uplinkWriter := pipe.New(opt...)
+	downlinkReader, downlinkWriter := pipe.New(opt...)
 
 	inboundLink := &core.Link{
 		Reader: downlinkReader,
@@ -132,7 +133,7 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 
 	inbound, outbound := d.getLink(ctx)
 	snifferList := proxyman.ProtocolSniffersFromContext(ctx)
-	if destination.Address.Family().IsDomain() || len(snifferList) == 0 {
+	if destination.Address.Family().IsDomain() || destination.Network != net.Network_TCP || len(snifferList) == 0 {
 		go d.routedDispatch(ctx, outbound, destination)
 	} else {
 		go func() {
